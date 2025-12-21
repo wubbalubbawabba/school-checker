@@ -133,23 +133,24 @@ INSERT INTO public_holidays (holiday_date, name, state, year) VALUES
 
 -- April (Easter - dates vary yearly, 2026 Easter Sunday is April 5)
 ('2026-04-03', 'Good Friday', 'QLD', 2026),
-('2026-04-04', 'Easter Saturday', 'QLD', 2026),
+('2026-04-04', 'The day after Good Friday', 'QLD', 2026),
+('2026-04-05', 'Easter Sunday, 'QLD', 2026),
 ('2026-04-06', 'Easter Monday', 'QLD', 2026),
 ('2026-04-25', 'ANZAC Day', 'QLD', 2026),
 
 -- May
 ('2026-05-04', 'Labour Day', 'QLD', 2026),
 
--- June
-('2026-06-08', 'King''s Birthday', 'QLD', 2026),
-
 -- August (Royal Queensland Show - Brisbane area)
 ('2026-08-12', 'Royal Queensland Show (Ekka)', 'QLD', 2026),
+
+-- October
+('2026-10-05', 'King''s Birthday', 'QLD', 2026),
 
 -- December
 ('2026-12-25', 'Christmas Day', 'QLD', 2026),
 ('2026-12-26', 'Boxing Day', 'QLD', 2026),
-('2026-12-28', 'Christmas Day (Additional Day)', 'QLD', 2026);
+('2026-12-28', 'Boxing Day', 'QLD', 2026);
 
 -- ============================================================================
 -- SEED DATA: Schools (The Gap, QLD 4061)
@@ -172,25 +173,15 @@ BEGIN
     ('Hilder Road State School', 'State School', 'The Gap', '4061', 'QLD', qld_term_rule_id, TRUE);
 END $$;
 
+
 -- ============================================================================
--- SEED DATA: Sample School Events (Optional - examples only)
+-- SEED DATA: School Events
 -- ============================================================================
 
--- Example: Adding a Student Free Day for The Gap State School
-DO $$
-DECLARE
-    school_id_gap UUID;
-BEGIN
-    SELECT id INTO school_id_gap 
-    FROM schools 
-    WHERE name = 'The Gap State School' AND suburb = 'The Gap';
-    
-    -- Example Student Free Day (first day of Term 1 for staff preparation)
-    IF school_id_gap IS NOT NULL THEN
-        INSERT INTO school_events (school_id, event_date, event_type, name, description, is_closure) VALUES
-        (school_id_gap, '2026-01-27', 'Student Free Day', 'Staff Preparation Day', 'First day of term - staff only', TRUE);
-    END IF;
-END $$;
+-- 只需要插入这一天，因为其他免课日 App 会自动算作假期
+INSERT INTO school_events (school_id, event_date, event_type, name, description, is_closure) 
+VALUES 
+((SELECT id FROM schools WHERE name = 'The Gap State School' LIMIT 1), '2026-09-04', 'Student Free Day', 'Staff PD Day', 'Staff only', TRUE);
 
 -- ============================================================================
 -- USEFUL QUERIES (Reference Only - Not Executed)
