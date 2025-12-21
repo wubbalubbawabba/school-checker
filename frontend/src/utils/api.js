@@ -2,7 +2,7 @@
  * Real API functions to connect to the backend
  */
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'https://school-checker-epmh.onrender.com/api';
 
 /**
  * Fetch all schools from the backend
@@ -35,11 +35,11 @@ export const checkSchoolStatus = async (schoolId, date) => {
     return {
       timeTraveler: true,
       schoolName: '',
-      date: date.toLocaleDateString('en-AU', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      date: date.toLocaleDateString('en-AU', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       }),
     };
   }
@@ -52,7 +52,7 @@ export const checkSchoolStatus = async (schoolId, date) => {
 
   try {
     const response = await fetch(`${API_BASE_URL}/check?schoolId=${encodeURIComponent(schoolId)}&date=${dateStr}`);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -62,23 +62,23 @@ export const checkSchoolStatus = async (schoolId, date) => {
     // Map backend response format to UI format
     // Backend: { status: "Open" | "Closed", reason: string, schoolName: string, date: string }
     // UI expects: { isOpen: boolean, reason: string, schoolName: string, date: string }
-    
+
     const isOpen = data.status === 'Open';
-    
+
     // Format date for display
-    const formattedDate = data.date 
+    const formattedDate = data.date
       ? new Date(data.date + 'T00:00:00').toLocaleDateString('en-AU', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
       : date.toLocaleDateString('en-AU', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
 
     return {
       isOpen,

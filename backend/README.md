@@ -97,3 +97,5 @@ The `checkSchoolStatus` function checks in this order:
 - JSONB fields are stored as TEXT and parsed in JavaScript
 - Timestamps are stored as ISO strings
 
+
+
