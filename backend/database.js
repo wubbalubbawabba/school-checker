@@ -250,32 +250,41 @@ function seedSchools(termRuleId) {
  */
 function seedSchoolEvents() {
     return new Promise((resolve, reject) => {
-        // Get The Gap State School ID
-        db.get(`SELECT id FROM schools WHERE name = 'The Gap State School' LIMIT 1`, [], (err, row) => {
+        // 1. 查找所有邮编 4061 的学校 (包含小学和高中)
+        db.all(`SELECT id FROM schools WHERE postcode = '4061'`, [], (err, rows) => {
             if (err) {
                 reject(err);
                 return;
             }
 
-            if (row) {
+            if (rows && rows.length > 0) {
+                // 准备插入语句
                 const query = `INSERT INTO school_events (id, school_id, event_date, event_type, name, description, is_closure) VALUES (?, ?, ?, ?, ?, ?, 1)`;
-                db.run(query, [
-                    generateUUID(),
-                    row.id,
-                    '2026-01-27',
-                    'Student Free Day',
-                    'Staff Preparation Day',
-                    'First day of term - staff only'
-                ], (err) => {
+                const stmt = db.prepare(query);
+
+                // 2. 遍历每一所学校，给它们都加上 9月4日 的假期
+                rows.forEach((row) => {
+                    stmt.run([
+                        generateUUID(),     // 生成新 ID
+                        row.id,             // 学校 ID
+                        '2026-09-04',       // 日期
+                        'Student Free Day', // 类型
+                        'Staff PD Day',     // 显示给用户的名称
+                        'Staff only - State Wide' // 描述
+                    ]);
+                });
+
+                // 3. 完成插入
+                stmt.finalize((err) => {
                     if (err) {
                         reject(err);
                     } else {
-                        console.log('✅ School events seeded');
+                        console.log(`✅ 已成功给 ${rows.length} 所学校添加了 9.4 假期`);
                         resolve();
                     }
                 });
             } else {
-                console.log('⚠️  No school found for events seeding');
+                console.log('⚠️ 没有找到学校，跳过事件插入');
                 resolve();
             }
         });

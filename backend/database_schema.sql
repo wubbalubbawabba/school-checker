@@ -134,7 +134,7 @@ INSERT INTO public_holidays (holiday_date, name, state, year) VALUES
 -- April (Easter - dates vary yearly, 2026 Easter Sunday is April 5)
 ('2026-04-03', 'Good Friday', 'QLD', 2026),
 ('2026-04-04', 'The day after Good Friday', 'QLD', 2026),
-('2026-04-05', 'Easter Sunday‘, 'QLD', 2026),
+('2026-04-05', 'Easter Sunday', 'QLD', 2026),
 ('2026-04-06', 'Easter Monday', 'QLD', 2026),
 ('2026-04-25', 'ANZAC Day', 'QLD', 2026),
 
