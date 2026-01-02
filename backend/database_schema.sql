@@ -134,7 +134,7 @@ INSERT INTO public_holidays (holiday_date, name, state, year) VALUES
 -- April (Easter - dates vary yearly, 2026 Easter Sunday is April 5)
 ('2026-04-03', 'Good Friday', 'QLD', 2026),
 ('2026-04-04', 'The day after Good Friday', 'QLD', 2026),
-('2026-04-05', 'Easter Sunday, 'QLD', 2026),
+('2026-04-05', 'Easter Sunday‘, 'QLD', 2026),
 ('2026-04-06', 'Easter Monday', 'QLD', 2026),
 ('2026-04-25', 'ANZAC Day', 'QLD', 2026),
 
@@ -142,7 +142,7 @@ INSERT INTO public_holidays (holiday_date, name, state, year) VALUES
 ('2026-05-04', 'Labour Day', 'QLD', 2026),
 
 -- August (Royal Queensland Show - Brisbane area)
-('2026-08-12', 'Royal Queensland Show (Ekka)', 'QLD', 2026),
+('2026-08-12', 'Ekka', 'QLD', 2026),
 
 -- October
 ('2026-10-05', 'King''s Birthday', 'QLD', 2026),
@@ -177,12 +177,18 @@ END $$;
 -- ============================================================================
 -- SEED DATA: School Events
 -- ============================================================================
-
--- 只需要插入这一天，因为其他免课日 App 会自动算作假期
-INSERT INTO school_events (school_id, event_date, event_type, name, description, is_closure) 
-VALUES 
-((SELECT id FROM schools WHERE name = 'The Gap State School' LIMIT 1), '2026-09-04', 'Student Free Day', 'Staff PD Day', 'Staff only', TRUE);
-
+INSERT INTO school_events (school_id, event_date, event_type, name, description, is_closure)
+SELECT 
+    id,
+    '2026-09-04', 
+    'Student Free Day', 
+    'Staff PD Day', 
+    'Staff only - State Wide', 
+    TRUE
+FROM schools 
+WHERE postcode = '4061' 
+  AND school_type IN ('State School', 'State High School'); 
+  
 -- ============================================================================
 -- USEFUL QUERIES (Reference Only - Not Executed)
 -- ============================================================================

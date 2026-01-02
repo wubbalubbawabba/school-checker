@@ -1,10 +1,33 @@
 import { motion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { CheckCircle2, PartyPopper, Calendar, School as SchoolIcon } from 'lucide-react';
+import { CheckCircle2, PartyPopper, Calendar, School as SchoolIcon, Clock } from 'lucide-react';
 
 const SchoolResult = ({ result }) => {
-  const { isOpen, reason, schoolName, date } = result;
+  const { isOpen, reason, schoolName, date, nextChangeDate, countdownLabel, nextChangeReason } = result;
+  const [daysUntil, setDaysUntil] = useState(null);
+
+  // Calculate days until next change
+  useEffect(() => {
+    if (nextChangeDate) {
+      const updateCountdown = () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const nextDate = new Date(nextChangeDate + 'T00:00:00');
+        nextDate.setHours(0, 0, 0, 0);
+        const diffTime = nextDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        setDaysUntil(diffDays >= 0 ? diffDays : 0);
+      };
+
+      updateCountdown();
+      // Update every hour
+      const interval = setInterval(updateCountdown, 3600000);
+      return () => clearInterval(interval);
+    } else {
+      setDaysUntil(null);
+    }
+  }, [nextChangeDate]);
 
   // Trigger confetti when NO state appears
   useEffect(() => {
@@ -193,6 +216,44 @@ const SchoolResult = ({ result }) => {
               </p>
               <p className="text-gray-700">
                 {reason}
+              </p>
+            </motion.div>
+          )}
+
+          {/* Countdown / Next Change */}
+          {nextChangeDate && daysUntil !== null && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="mt-4 p-4 bg-ocean/10 rounded-xl border border-ocean/20"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Clock size={18} className="text-ocean flex-shrink-0" />
+                <p className="text-sm font-semibold text-ocean">
+                  {countdownLabel || (isOpen ? 'Holidays start in...' : 'School starts in...')}
+                </p>
+              </div>
+              {daysUntil === 0 ? (
+                <p className="text-gray-700 font-medium">
+                  Today! {nextChangeReason ? `(${nextChangeReason})` : ''}
+                </p>
+              ) : daysUntil === 1 ? (
+                <p className="text-gray-700 font-medium">
+                  Tomorrow {nextChangeReason ? `(${nextChangeReason})` : ''}
+                </p>
+              ) : (
+                <p className="text-gray-700 font-medium">
+                  {daysUntil} {daysUntil === 1 ? 'day' : 'days'} {nextChangeReason ? `(${nextChangeReason})` : ''}
+                </p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                {new Date(nextChangeDate + 'T00:00:00').toLocaleDateString('en-AU', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
               </p>
             </motion.div>
           )}

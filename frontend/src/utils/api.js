@@ -2,7 +2,7 @@
  * Real API functions to connect to the backend
  */
 
-const API_BASE_URL = 'https://school-checker-epmh.onrender.com/api';
+const API_BASE_URL = 'http://localhost:3000/api';
 
 /**
  * Fetch all schools from the backend
@@ -85,6 +85,9 @@ export const checkSchoolStatus = async (schoolId, date) => {
       reason: data.reason || 'Unknown',
       schoolName: data.schoolName || '',
       date: formattedDate,
+      nextChangeDate: data.nextChangeDate || null,
+      countdownLabel: data.countdownLabel || null,
+      nextChangeReason: data.nextChangeReason || null, // Reason for the next change
     };
   } catch (error) {
     console.error('Error checking school status:', error);
