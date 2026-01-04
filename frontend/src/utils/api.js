@@ -2,7 +2,7 @@
  * Real API functions to connect to the backend
  */
 
-const API_BASE_URL = 'http://localhost:3000/api';
+import API_BASE_URL from '../config.js';
 
 /**
  * Fetch all schools from the backend
@@ -10,7 +10,7 @@ const API_BASE_URL = 'http://localhost:3000/api';
  */
 export const fetchSchools = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/schools`);
+    const response = await fetch(`${API_BASE_URL}/api/schools`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -51,7 +51,7 @@ export const checkSchoolStatus = async (schoolId, date) => {
   const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/check?schoolId=${encodeURIComponent(schoolId)}&date=${dateStr}`);
+    const response = await fetch(`${API_BASE_URL}/api/check?schoolId=${encodeURIComponent(schoolId)}&date=${dateStr}`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

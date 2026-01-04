@@ -101,3 +101,4 @@ The `checkSchoolStatus` function checks in this order:
 
 
 
+
