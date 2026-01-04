@@ -5,7 +5,7 @@ import LoadingAnimation from './components/LoadingAnimation';
 import SchoolResult from './components/SchoolResult';
 import TimeTravelerMessage from './components/TimeTravelerMessage';
 import DateInput from './components/DateInput';
-import { MapPin } from 'lucide-react';
+import { MapPin, Github } from 'lucide-react';
 
 function App() {
   const [schools, setSchools] = useState([]);
@@ -159,11 +159,36 @@ function App() {
                   date={result.date}
                 />
               ) : (
-                <SchoolResult key="result" result={result} />
+                <SchoolResult key="result" result={result} selectedDate={dateStr} />
               )
             ) : null}
           </AnimatePresence>
         </div>
+
+        {/* Footer */}
+        <footer className="mt-12 text-center">
+          <p className="text-sm text-slate-400">
+            Built with ❤️ by Fan. Have feedback?{' '}
+            <span className="inline-flex items-center gap-2">
+              <a
+                href="mailto:laurel.fan12@gmail.com"
+                className="text-slate-500 hover:text-slate-700 hover:underline transition-colors"
+              >
+                Email me
+              </a>
+              <span className="text-slate-300">|</span>
+              <a
+                href="https://github.com/wubbalubbawabba/school-checker"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+                aria-label="GitHub Repository"
+              >
+                <Github className="w-5 h-5" />
+              </a>
+            </span>
+          </p>
+        </footer>
       </div>
     </div>
   );

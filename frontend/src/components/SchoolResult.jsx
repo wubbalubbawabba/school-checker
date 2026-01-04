@@ -1,33 +1,31 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { CheckCircle2, PartyPopper, Calendar, School as SchoolIcon, Clock } from 'lucide-react';
+import { CheckCircle2, PartyPopper, Calendar, School as SchoolIcon, Clock, Share2, Check } from 'lucide-react';
+import WeatherWidget from './WeatherWidget';
 
-const SchoolResult = ({ result }) => {
+const SchoolResult = ({ result, selectedDate }) => {
   const { isOpen, reason, schoolName, date, nextChangeDate, countdownLabel, nextChangeReason } = result;
   const [daysUntil, setDaysUntil] = useState(null);
+  const [copied, setCopied] = useState(false);
 
-  // Calculate days until next change
+  // Calculate days until next change based on selected date (not today)
   useEffect(() => {
-    if (nextChangeDate) {
-      const updateCountdown = () => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const nextDate = new Date(nextChangeDate + 'T00:00:00');
-        nextDate.setHours(0, 0, 0, 0);
-        const diffTime = nextDate - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        setDaysUntil(diffDays >= 0 ? diffDays : 0);
-      };
-
-      updateCountdown();
-      // Update every hour
-      const interval = setInterval(updateCountdown, 3600000);
-      return () => clearInterval(interval);
+    if (nextChangeDate && selectedDate) {
+      // Parse the selected date (format: YYYY-MM-DD)
+      const selectedDateObj = new Date(selectedDate + 'T00:00:00');
+      selectedDateObj.setHours(0, 0, 0, 0);
+      
+      const nextDate = new Date(nextChangeDate + 'T00:00:00');
+      nextDate.setHours(0, 0, 0, 0);
+      
+      const diffTime = nextDate - selectedDateObj;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setDaysUntil(diffDays >= 0 ? diffDays : 0);
     } else {
       setDaysUntil(null);
     }
-  }, [nextChangeDate]);
+  }, [nextChangeDate, selectedDate]);
 
   // Trigger confetti when NO state appears
   useEffect(() => {
@@ -71,8 +69,8 @@ const SchoolResult = ({ result }) => {
   const containerVariants = {
     hidden: { 
       opacity: 0, 
-      scale: 0.8,
-      y: 50
+      scale: 0.95,
+      y: 20
     },
     visible: { 
       opacity: 1, 
@@ -81,7 +79,7 @@ const SchoolResult = ({ result }) => {
       transition: {
         type: "spring",
         stiffness: 300,
-        damping: 20,
+        damping: 25,
         mass: 0.8
       }
     }
@@ -96,32 +94,91 @@ const SchoolResult = ({ result }) => {
         type: "spring",
         stiffness: 200,
         damping: 15,
-        delay: 0.2
+        delay: 0.15
       }
     }
   };
 
   const textVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 10 },
     visible: { 
       opacity: 1, 
       y: 0,
       transition: {
-        delay: 0.3,
-        duration: 0.5
+        delay: 0.25,
+        duration: 0.4
       }
     }
   };
 
-  // Celebration colors for NO state
-  const celebrationColors = {
-    bg: 'bg-gradient-to-br from-orange-400/30 to-yellow-400/20',
-    border: 'border-2 border-orange-400/40',
-    text: 'text-orange-600',
+  // Unified theme colors
+  const themeColors = isOpen ? {
+    bg: 'bg-gradient-to-br from-emerald-50/80 to-teal-50/60 backdrop-blur-sm',
+    border: 'border border-emerald-200/40',
+    statusText: 'text-emerald-600',
+    icon: 'text-emerald-500',
+    accent: 'text-emerald-600',
+    accentBg: 'bg-emerald-100/50',
+    accentBorder: 'border-emerald-200/30',
+  } : {
+    bg: 'bg-gradient-to-br from-orange-50/80 to-amber-50/60 backdrop-blur-sm',
+    border: 'border border-orange-200/40',
+    statusText: 'text-orange-600',
     icon: 'text-orange-500',
-    reasonBg: 'bg-orange-100/50',
-    reasonBorder: 'border-orange-300/30',
-    reasonText: 'text-orange-700'
+    accent: 'text-orange-600',
+    accentBg: 'bg-orange-100/50',
+    accentBorder: 'border-orange-200/30',
+  };
+
+  // Format countdown display
+  const getCountdownDisplay = () => {
+    if (daysUntil === 0) {
+      return { number: null, text: 'Today', reason: nextChangeReason };
+    } else if (daysUntil === 1) {
+      return { number: null, text: 'Tomorrow', reason: nextChangeReason };
+    } else if (daysUntil > 1) {
+      return { number: daysUntil, text: 'days left', reason: nextChangeReason };
+    } else {
+      return { number: null, text: nextChangeReason || 'Date has passed', reason: null };
+    }
+  };
+
+  // Compute countdown display data
+  const countdownDisplay = nextChangeDate && daysUntil !== null ? getCountdownDisplay() : null;
+  const countdownLabelText = countdownDisplay ? (countdownLabel || (isOpen ? 'Holidays start' : 'School starts')) : null;
+
+  // Handle share functionality
+  const handleShare = async () => {
+    const url = window.location.href;
+    
+    try {
+      // Check if navigator.share is available (mobile)
+      if (navigator.share) {
+        await navigator.share({
+          title: `Is School On? - ${schoolName}`,
+          text: `${schoolName} is ${isOpen ? 'OPEN' : 'CLOSED'} on ${date}`,
+          url: url,
+        });
+      } else {
+        // Fallback to clipboard (desktop)
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch (error) {
+      // User cancelled share or clipboard failed
+      if (error.name !== 'AbortError') {
+        console.error('Error sharing:', error);
+        // Fallback to clipboard if share fails
+        try {
+          await navigator.clipboard.writeText(url);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch (clipboardError) {
+          console.error('Clipboard error:', clipboardError);
+        }
+      }
+    }
   };
 
   return (
@@ -129,133 +186,148 @@ const SchoolResult = ({ result }) => {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="w-full max-w-md mx-auto"
+      className="w-full max-w-lg mx-auto"
     >
       <div className={`
-        rounded-3xl p-8 shadow-xl
-        ${isOpen 
-          ? 'bg-gradient-to-br from-eucalyptus/20 to-eucalyptus/5 border-2 border-eucalyptus/30' 
-          : `${celebrationColors.bg} ${celebrationColors.border}`
-        }
+        relative rounded-3xl p-8 shadow-xl ${themeColors.bg} ${themeColors.border}
       `}>
-        {/* Status Icon */}
-        <motion.div
-          variants={iconVariants}
-          className="flex justify-center mb-6"
+        {/* Share Button */}
+        <button
+          onClick={handleShare}
+          className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors duration-200"
+          aria-label="Share"
         >
-          {isOpen ? (
-            <CheckCircle2 
-              size={80} 
-              className="text-eucalyptus drop-shadow-lg"
-            />
+          {copied ? (
+            <Check size={18} className="text-green-600" />
           ) : (
-            <motion.div
-              animate={{
-                rotate: [0, -10, 10, -10, 10, 0],
-                scale: [1, 1.1, 1],
-              }}
-              transition={{
-                duration: 0.6,
-                delay: 0.3,
-              }}
-            >
-              <PartyPopper 
-                size={80} 
-                className={`${celebrationColors.icon} drop-shadow-lg`}
-              />
-            </motion.div>
+            <Share2 size={18} />
           )}
-        </motion.div>
+        </button>
+        {/* Top Section: Icon and Status */}
+        <div className="text-center mb-8">
+          <motion.div
+            variants={iconVariants}
+            className="flex justify-center mb-4"
+          >
+            {isOpen ? (
+              <CheckCircle2 
+                size={72} 
+                className={`${themeColors.icon} drop-shadow-md`}
+              />
+            ) : (
+              <motion.div
+                animate={{
+                  rotate: [0, -10, 10, -10, 10, 0],
+                  scale: [1, 1.05, 1],
+                }}
+                transition={{
+                  duration: 0.5,
+                  delay: 0.3,
+                }}
+              >
+                <PartyPopper 
+                  size={72} 
+                  className={`${themeColors.icon} drop-shadow-md`}
+                />
+              </motion.div>
+            )}
+          </motion.div>
 
-        {/* Big Status Text */}
-        <motion.h2
-          variants={textVariants}
-          className={`
-            text-6xl font-bold text-center mb-4
-            ${isOpen ? 'text-eucalyptus' : celebrationColors.text}
-          `}
-        >
-          {isOpen ? 'YES' : 'NO'}
-        </motion.h2>
+          <motion.h2
+            variants={textVariants}
+            className={`text-6xl font-bold mb-3 ${themeColors.statusText}`}
+          >
+            {isOpen ? 'YES' : 'NO'}
+          </motion.h2>
 
-        {/* Playful Text */}
-        <motion.p
-          variants={textVariants}
-          className="text-xl text-center text-gray-700 mb-6 font-medium"
-        >
-          {isOpen 
-            ? "Pack your lunch! School's on." 
-            : "Woohoo! Sleep in. 🎉"
-          }
-        </motion.p>
+          <motion.p
+            variants={textVariants}
+            className="text-lg text-gray-600 font-medium"
+          >
+            {isOpen 
+              ? "Pack your lunch! School's on." 
+              : "Woohoo! Sleep in. 🎉"
+            }
+          </motion.p>
+        </div>
 
-        {/* Details Section */}
+        {/* Middle Section: School Name and Date (Subtle) */}
         <motion.div
           variants={textVariants}
-          className="space-y-3 mt-8 pt-6 border-t border-gray-200"
+          className="flex flex-col items-center gap-2 mb-6 pb-6 border-b border-gray-200/40"
         >
-          <div className="flex items-center gap-3 text-gray-700">
-            <SchoolIcon size={20} className="text-ocean flex-shrink-0" />
-            <span className="font-medium">{schoolName}</span>
+          <div className="flex items-center gap-2 text-gray-500">
+            <SchoolIcon size={16} className="flex-shrink-0" />
+            <span className="text-sm font-medium">{schoolName}</span>
           </div>
           
-          <div className="flex items-center gap-3 text-gray-700">
-            <Calendar size={20} className="text-ocean flex-shrink-0" />
-            <span>{date}</span>
+          <div className="flex items-center gap-2 text-gray-500">
+            <Calendar size={16} className="flex-shrink-0" />
+            <span className="text-sm">{date}</span>
           </div>
 
-          {!isOpen && (
+          {/* Reason for NO state */}
+          {!isOpen && reason && (
             <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 }}
-              className={`mt-4 p-4 ${celebrationColors.reasonBg} rounded-xl border ${celebrationColors.reasonBorder}`}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mt-4 p-5 rounded-2xl bg-white/70 backdrop-blur-sm border border-white/50 shadow-sm"
             >
-              <p className={`text-sm font-semibold ${celebrationColors.reasonText} mb-1`}>
-                Reason:
+              <p className="text-xs uppercase tracking-widest text-slate-500 mb-3">
+                REASON
               </p>
-              <p className="text-gray-700">
+              <p className="text-lg font-bold text-orange-900/80 tracking-tight">
                 {reason}
               </p>
             </motion.div>
           )}
+        </motion.div>
 
-          {/* Countdown / Next Change */}
-          {nextChangeDate && daysUntil !== null && (
+        {/* Bottom Grid: Countdown and Weather Side-by-Side */}
+        <motion.div
+          variants={textVariants}
+          className="flex gap-3"
+        >
+          {/* Countdown Pill/Badge */}
+          {countdownDisplay && countdownLabelText && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="mt-4 p-4 bg-ocean/10 rounded-xl border border-ocean/20"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.35 }}
+              className="flex-1 p-5 rounded-2xl bg-white/70 backdrop-blur-sm border border-white/50 shadow-sm"
             >
-              <div className="flex items-center gap-2 mb-2">
-                <Clock size={18} className="text-ocean flex-shrink-0" />
-                <p className="text-sm font-semibold text-ocean">
-                  {countdownLabel || (isOpen ? 'Holidays start in...' : 'School starts in...')}
-                </p>
+              <p className="text-xs uppercase tracking-widest text-slate-500 mb-3">
+                {countdownLabelText.toUpperCase()}
+              </p>
+              <div className="flex items-baseline gap-2">
+                {countdownDisplay.number !== null && (
+                  <>
+                    <span className={`text-3xl font-black leading-none tracking-tight ${isOpen ? 'text-emerald-600' : 'text-orange-500'}`}>
+                      {countdownDisplay.number}
+                    </span>
+                    <span className="text-sm text-stone-500 leading-none">
+                      {countdownDisplay.text}
+                    </span>
+                  </>
+                )}
+                {countdownDisplay.number === null && (
+                  <span className={`text-xl font-black tracking-tight ${isOpen ? 'text-emerald-600' : 'text-orange-600'}`}>
+                    {countdownDisplay.text}
+                  </span>
+                )}
               </div>
-              {daysUntil === 0 ? (
-                <p className="text-gray-700 font-medium">
-                  Today! {nextChangeReason ? `(${nextChangeReason})` : ''}
-                </p>
-              ) : daysUntil === 1 ? (
-                <p className="text-gray-700 font-medium">
-                  Tomorrow {nextChangeReason ? `(${nextChangeReason})` : ''}
-                </p>
-              ) : (
-                <p className="text-gray-700 font-medium">
-                  {daysUntil} {daysUntil === 1 ? 'day' : 'days'} {nextChangeReason ? `(${nextChangeReason})` : ''}
+              {countdownDisplay.reason && (
+                <p className="text-base text-slate-500 mt-2">
+                  {countdownDisplay.reason}
                 </p>
               )}
-              <p className="text-xs text-gray-500 mt-1">
-                {new Date(nextChangeDate + 'T00:00:00').toLocaleDateString('en-AU', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </p>
             </motion.div>
+          )}
+
+          {/* Weather Widget */}
+          {selectedDate && (
+            <WeatherWidget date={new Date(selectedDate + 'T00:00:00')} theme={isOpen ? 'green' : 'orange'} />
           )}
         </motion.div>
       </div>
