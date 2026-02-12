@@ -1,0 +1,30 @@
+{
+  "qld-state-2026": {
+    "id": "qld-state-2026",
+    "name": "QLD State Schools 2026",
+    "year": 2026,
+    "state": "QLD",
+    "terms": [
+      {
+        "term": 1,
+        "start_date": "2026-01-27",
+        "end_date": "2026-04-02"
+      },
+      {
+        "term": 2,
+        "start_date": "2026-04-20",
+        "end_date": "2026-06-26"
+      },
+      {
+        "term": 3,
+        "start_date": "2026-07-13",
+        "end_date": "2026-09-18"
+      },
+      {
+        "term": 4,
+        "start_date": "2026-10-06",
+        "end_date": "2026-12-11"
+      }
+    ]
+  }
+}

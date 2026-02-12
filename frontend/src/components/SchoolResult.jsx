@@ -4,10 +4,18 @@ import confetti from 'canvas-confetti';
 import { CheckCircle2, PartyPopper, Calendar, School as SchoolIcon, Clock, Share2, Check } from 'lucide-react';
 import WeatherWidget from './WeatherWidget';
 
-const SchoolResult = ({ result, selectedDate }) => {
+const SchoolResult = ({ result, selectedDate, emergencyClosure, isCheckingEmergency }) => {
   const { isOpen, reason, schoolName, date, nextChangeDate, countdownLabel, nextChangeReason } = result;
   const [daysUntil, setDaysUntil] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [showEmergency, setShowEmergency] = useState(false);
+
+  // Show emergency closure if detected
+  useEffect(() => {
+    if (emergencyClosure && emergencyClosure.isClosed) {
+      setShowEmergency(true);
+    }
+  }, [emergencyClosure]);
 
   // Calculate days until next change based on selected date (not today)
   useEffect(() => {
@@ -112,7 +120,15 @@ const SchoolResult = ({ result, selectedDate }) => {
   };
 
   // Unified theme colors
-  const themeColors = isOpen ? {
+  const themeColors = showEmergency ? {
+    bg: 'bg-gradient-to-br from-red-50/90 to-rose-50/80 backdrop-blur-sm',
+    border: 'border-2 border-red-300/60',
+    statusText: 'text-red-600',
+    icon: 'text-red-500',
+    accent: 'text-red-600',
+    accentBg: 'bg-red-100/60',
+    accentBorder: 'border-red-200/40',
+  } : isOpen ? {
     bg: 'bg-gradient-to-br from-emerald-50/80 to-teal-50/60 backdrop-blur-sm',
     border: 'border border-emerald-200/40',
     statusText: 'text-emerald-600',
@@ -129,6 +145,12 @@ const SchoolResult = ({ result, selectedDate }) => {
     accentBg: 'bg-orange-100/50',
     accentBorder: 'border-orange-200/30',
   };
+
+  const displayStatus = showEmergency ? 'EMERGENCY CLOSURE' : (isOpen ? 'YES' : 'NO');
+  const displayReason = showEmergency ? (emergencyClosure.reason || 'Emergency Closure') : reason;
+  const displayMessage = showEmergency 
+    ? '⚠️ School closed due to emergency conditions'
+    : (isOpen ? "Pack your lunch! School's on." : "Woohoo! Sleep in. 🎉");
 
   // Format countdown display
   const getCountdownDisplay = () => {
@@ -209,7 +231,25 @@ const SchoolResult = ({ result, selectedDate }) => {
             variants={iconVariants}
             className="flex justify-center mb-4"
           >
-            {isOpen ? (
+            {showEmergency ? (
+              <motion.div
+                animate={{
+                  rotate: [0, -15, 15, -15, 15, 0],
+                  scale: [1, 1.1, 1],
+                }}
+                transition={{
+                  duration: 0.6,
+                  delay: 0.3,
+                  repeat: Infinity,
+                  repeatDelay: 2,
+                }}
+              >
+                <PartyPopper 
+                  size={72} 
+                  className={`${themeColors.icon} drop-shadow-md`}
+                />
+              </motion.div>
+            ) : isOpen ? (
               <CheckCircle2 
                 size={72} 
                 className={`${themeColors.icon} drop-shadow-md`}
@@ -235,19 +275,16 @@ const SchoolResult = ({ result, selectedDate }) => {
 
           <motion.h2
             variants={textVariants}
-            className={`text-6xl font-bold mb-3 ${themeColors.statusText}`}
+            className={`text-5xl md:text-6xl font-black mb-3 ${themeColors.statusText}`}
           >
-            {isOpen ? 'YES' : 'NO'}
+            {displayStatus}
           </motion.h2>
 
           <motion.p
             variants={textVariants}
             className="text-lg text-gray-600 font-medium"
           >
-            {isOpen 
-              ? "Pack your lunch! School's on." 
-              : "Woohoo! Sleep in. 🎉"
-            }
+            {displayMessage}
           </motion.p>
         </div>
 
@@ -266,20 +303,42 @@ const SchoolResult = ({ result, selectedDate }) => {
             <span className="text-sm">{date}</span>
           </div>
 
-          {/* Reason for NO state */}
-          {!isOpen && reason && (
+          {/* Reason for NO state or Emergency Closure */}
+          {(!isOpen || showEmergency) && displayReason && (
             <motion.div
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="mt-4 p-5 rounded-2xl bg-white/70 backdrop-blur-sm border border-white/50 shadow-sm"
+              className={`mt-4 p-5 rounded-2xl bg-white/70 backdrop-blur-sm border border-white/50 shadow-sm ${showEmergency ? 'border-red-200' : ''}`}
             >
               <p className="text-xs uppercase tracking-widest text-slate-500 mb-3">
-                REASON
+                {showEmergency ? '⚠️ EMERGENCY' : 'REASON'}
               </p>
-              <p className="text-lg font-bold text-orange-900/80 tracking-tight">
-                {reason}
+              <p className={`text-lg font-bold tracking-tight ${showEmergency ? 'text-red-700' : 'text-orange-900/80'}`}>
+                {displayReason}
               </p>
+              {showEmergency && emergencyClosure.details && (
+                <p className="text-sm text-red-600 mt-2">
+                  {emergencyClosure.details}
+                </p>
+              )}
+            </motion.div>
+          )}
+
+          {/* Emergency closure checking indicator */}
+          {isCheckingEmergency && !showEmergency && !isOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-2 text-xs text-slate-400 flex items-center gap-1"
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              >
+                <PartyPopper size={12} />
+              </motion.div>
+              Checking emergency closures...
             </motion.div>
           )}
         </motion.div>

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "gap-state-school",
+    "name": "The Gap State School",
+    "school_type": "State School",
+    "suburb": "The Gap",
+    "postcode": "4061",
+    "state": "QLD",
+    "termRuleId": "qld-state-2026"
+  },
+  {
+    "id": "gap-state-high",
+    "name": "The Gap State High School",
+    "school_type": "State High School",
+    "suburb": "The Gap",
+    "postcode": "4061",
+    "state": "QLD",
+    "termRuleId": "qld-state-2026"
+  },
+  {
+    "id": "payne-road-state-school",
+    "name": "Payne Road State School",
+    "school_type": "State School",
+    "suburb": "The Gap",
+    "postcode": "4061",
+    "state": "QLD",
+    "termRuleId": "qld-state-2026"
+  },
+  {
+    "id": "hilder-road-state-school",
+    "name": "Hilder Road State School",
+    "school_type": "State School",
+    "suburb": "The Gap",
+    "postcode": "4061",
+    "state": "QLD",
+    "termRuleId": "qld-state-2026"
+  }
+]

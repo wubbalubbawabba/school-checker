@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { fetchSchools, checkSchoolStatus } from './utils/api';
+import { getSchools, getSchoolStatus, findNearestSchool } from './utils/schoolLogic';
 import LoadingAnimation from './components/LoadingAnimation';
 import SchoolResult from './components/SchoolResult';
 import TimeTravelerMessage from './components/TimeTravelerMessage';
 import DateInput from './components/DateInput';
-import { MapPin, Github } from 'lucide-react';
+import { MapPin, Github, Navigation } from 'lucide-react';
 
 function App() {
   const [schools, setSchools] = useState([]);
@@ -15,13 +15,14 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSchools, setIsLoadingSchools] = useState(true);
   const [result, setResult] = useState(null);
+  const [emergencyClosure, setEmergencyClosure] = useState(null);
+  const [isCheckingEmergency, setIsCheckingEmergency] = useState(false);
 
-  // Fetch schools on component mount
+  // Load schools locally (instant - no API call)
   useEffect(() => {
-    const loadSchools = async () => {
+    const loadSchools = () => {
       try {
-        setIsLoadingSchools(true);
-        const schoolsData = await fetchSchools();
+        const schoolsData = getSchools();
         setSchools(schoolsData);
         // Set first school as default if available
         if (schoolsData.length > 0) {
@@ -37,9 +38,65 @@ function App() {
     loadSchools();
   }, []);
 
+  // Check for emergency closures (silent background check)
+  const checkEmergencyClosure = useCallback(async (schoolName, date) => {
+    if (!schoolName) return;
+    
+    setIsCheckingEmergency(true);
+    try {
+      // Check if we have cached result (10-minute cache)
+      const cacheKey = `emergency-${schoolName}-${date}`;
+      const cached = localStorage.getItem(cacheKey);
+      
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        const age = Date.now() - timestamp;
+        
+        // Cache is valid for 10 minutes
+        if (age < 10 * 60 * 1000) {
+          if (data.isClosed) {
+            setEmergencyClosure(data);
+          }
+          setIsCheckingEmergency(false);
+          return;
+        }
+      }
+      
+      // Determine API base URL
+      const API_BASE_URL = import.meta.env.PROD
+        ? 'https://school-checker-epmh.onrender.com'
+        : 'http://localhost:3000';
+      
+      // Call backend API to check closures.qld.edu.au
+      const response = await fetch(`${API_BASE_URL}/api/emergency?schoolName=${encodeURIComponent(schoolName)}&date=${date}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Cache the result
+        localStorage.setItem(cacheKey, JSON.stringify({
+          data,
+          timestamp: Date.now()
+        }));
+        
+        if (data.isClosed) {
+          setEmergencyClosure(data);
+        } else {
+          setEmergencyClosure(null);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check emergency closure:', error);
+      // Don't show error to user, just skip the check
+    } finally {
+      setIsCheckingEmergency(false);
+    }
+  }, []);
+
   const handleCheck = useCallback(async () => {
     if (!selectedSchoolId || !dateStr || dateStr.trim() === '') {
       setResult(null);
+      setEmergencyClosure(null);
       return;
     }
 
@@ -48,15 +105,42 @@ function App() {
     if (isNaN(dateObj.getTime())) {
       // Invalid date, don't proceed
       setResult(null);
+      setEmergencyClosure(null);
       return;
     }
 
     setIsLoading(true);
     setResult(null);
+    setEmergencyClosure(null);
 
     try {
-      const status = await checkSchoolStatus(selectedSchoolId, dateObj);
-      setResult(status);
+      // LOCAL calculation - instant result
+      const status = getSchoolStatus(selectedSchoolId, dateStr);
+      
+      // Get school name for display and emergency check
+      const school = schools.find(s => s.id === selectedSchoolId);
+      const schoolName = school ? school.name : '';
+      
+      // Format date for display
+      const formattedDate = dateObj.toLocaleDateString('en-AU', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      const result = {
+        ...status,
+        schoolName,
+        date: formattedDate
+      };
+      
+      setResult(result);
+      setIsLoading(false);
+      
+      // Check emergency closure in background (non-blocking)
+      checkEmergencyClosure(schoolName, dateStr);
+      
     } catch (error) {
       console.error('Error checking school status:', error);
       setResult({
@@ -70,10 +154,9 @@ function App() {
           day: 'numeric'
         })
       });
-    } finally {
       setIsLoading(false);
     }
-  }, [selectedSchoolId, dateStr]);
+  }, [selectedSchoolId, dateStr, schools, checkEmergencyClosure]);
 
   // Auto-check when school or date changes (only if date is valid)
   useEffect(() => {
@@ -83,11 +166,43 @@ function App() {
         handleCheck();
       } else {
         setResult(null);
+        setEmergencyClosure(null);
       }
     } else {
       setResult(null);
+      setEmergencyClosure(null);
     }
   }, [selectedSchoolId, dateStr, handleCheck]);
+
+  // Use My Location handler
+  const handleUseLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const nearestSchool = findNearestSchool(latitude, longitude);
+        
+        if (nearestSchool) {
+          setSelectedSchoolId(nearestSchool.id);
+        } else {
+          alert('Could not find a nearby school');
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        alert('Could not get your location. Please select a school manually.');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      }
+    );
+  }, []);
 
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
@@ -110,12 +225,23 @@ function App() {
           <div className="space-y-4">
             {/* School Selector */}
             <div>
-              <label
-                htmlFor="school-select"
-                className="block text-sm font-semibold text-gray-700 mb-2"
-              >
-                Select School
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  htmlFor="school-select"
+                  className="block text-sm font-semibold text-gray-700"
+                >
+                  Select School
+                </label>
+                <button
+                  type="button"
+                  onClick={handleUseLocation}
+                  className="text-xs flex items-center gap-1 text-ocean hover:text-ocean-dark transition-colors"
+                  title="Use my current location"
+                >
+                  <Navigation size={14} />
+                  Use My Location
+                </button>
+              </div>
               {isLoadingSchools ? (
                 <div className="w-full px-4 py-3 rounded-xl border-2 border-ocean/30 bg-gray-100 text-gray-500 text-lg">
                   Loading schools...
@@ -159,7 +285,13 @@ function App() {
                   date={result.date}
                 />
               ) : (
-                <SchoolResult key="result" result={result} selectedDate={dateStr} />
+                <SchoolResult 
+                  key="result" 
+                  result={result} 
+                  selectedDate={dateStr}
+                  emergencyClosure={emergencyClosure}
+                  isCheckingEmergency={isCheckingEmergency}
+                />
               )
             ) : null}
           </AnimatePresence>
