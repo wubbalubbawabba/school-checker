@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { getSchools, getSchoolStatus, findNearestSchool } from './utils/schoolLogic';
+import { getSchools, getSchoolStatus } from './utils/schoolLogic';
 import LoadingAnimation from './components/LoadingAnimation';
 import SchoolResult from './components/SchoolResult';
 import TimeTravelerMessage from './components/TimeTravelerMessage';
 import DateInput from './components/DateInput';
-import { MapPin, Github, Navigation } from 'lucide-react';
+import { MapPin, Github } from 'lucide-react';
 
 function App() {
   const [schools, setSchools] = useState([]);
@@ -174,35 +174,6 @@ function App() {
     }
   }, [selectedSchoolId, dateStr, handleCheck]);
 
-  // Use My Location handler
-  const handleUseLocation = useCallback(() => {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser');
-      return;
-    }
-    
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const nearestSchool = findNearestSchool(latitude, longitude);
-        
-        if (nearestSchool) {
-          setSelectedSchoolId(nearestSchool.id);
-        } else {
-          alert('Could not find a nearby school');
-        }
-      },
-      (error) => {
-        console.error('Geolocation error:', error);
-        alert('Could not get your location. Please select a school manually.');
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0
-      }
-    );
-  }, []);
 
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
@@ -225,23 +196,12 @@ function App() {
           <div className="space-y-4">
             {/* School Selector */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label
-                  htmlFor="school-select"
-                  className="block text-sm font-semibold text-gray-700"
-                >
-                  Select School
-                </label>
-                <button
-                  type="button"
-                  onClick={handleUseLocation}
-                  className="text-xs flex items-center gap-1 text-ocean hover:text-ocean-dark transition-colors"
-                  title="Use my current location"
-                >
-                  <Navigation size={14} />
-                  Use My Location
-                </button>
-              </div>
+              <label
+                htmlFor="school-select"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                Select School
+              </label>
               {isLoadingSchools ? (
                 <div className="w-full px-4 py-3 rounded-xl border-2 border-ocean/30 bg-gray-100 text-gray-500 text-lg">
                   Loading schools...

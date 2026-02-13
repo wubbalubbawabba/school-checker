@@ -180,30 +180,3 @@ export const getSchoolStatus = (schoolId, date) => {
     nextChangeReason: nextChange.reason
   };
 };
-
-/**
- * Find nearest school to a location (lat, lng)
- * Note: This is a simplified version - in production you'd use proper geocoding
- * Currently returns The Gap schools since they're all in the same area
- */
-export const findNearestSchool = (lat, lng) => {
-  // The Gap, QLD coordinates: -27.4159, 152.9912
-  const theGapLat = -27.4159;
-  const theGapLng = 152.9912;
-  
-  // Calculate distance from user to The Gap
-  const userLat = parseFloat(lat);
-  const userLng = parseFloat(lng);
-  
-  const distance = Math.sqrt(
-    Math.pow(userLat - theGapLat, 2) + Math.pow(userLng - theGapLng, 2)
-  );
-  
-  // If within 0.5 degrees (~55km), return the first school
-  if (distance < 0.5) {
-    return schools[0];
-  }
-  
-  // Otherwise return first school anyway
-  return schools[0];
-};
